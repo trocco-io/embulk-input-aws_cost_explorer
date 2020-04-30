@@ -118,9 +118,7 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
             });
             pageBuilder.finish();
         }
-
-        // Write your code here :)
-        throw new UnsupportedOperationException("AwsCostExplorerInputPlugin.run method is not implemented yet");
+        return null;
     }
 
     @Override
