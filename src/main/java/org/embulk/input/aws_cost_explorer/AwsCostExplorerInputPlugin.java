@@ -112,7 +112,7 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
                 pageBuilder.setString(schema.getColumn(2), task.getMetrics());
                 MetricValue metricValue = resultsByTime.getTotal().get(task.getMetrics());
                 pageBuilder.setDouble(schema.getColumn(3), Double.parseDouble(metricValue.getAmount()));
-                pageBuilder.setString(schema.getColumn(4), metricValue.getAmount());
+                pageBuilder.setString(schema.getColumn(4), metricValue.getUnit());
                 pageBuilder.setBoolean(schema.getColumn(5), resultsByTime.isEstimated());
                 pageBuilder.addRecord();
             });
