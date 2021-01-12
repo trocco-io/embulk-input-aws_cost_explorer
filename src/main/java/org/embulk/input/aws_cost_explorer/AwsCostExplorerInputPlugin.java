@@ -43,7 +43,7 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
         @Config("secret_access_key")
         public String getSecretAccessKey();
 
-        @Config("mertics")
+        @Config("metrics")
         @ConfigDefault("\"UnblendedCost\"")
         public String getMetrics();
 
