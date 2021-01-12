@@ -33,10 +33,12 @@ import org.embulk.spi.time.TimestampParser;
 import org.embulk.spi.type.Types;
 import org.slf4j.Logger;
 
-public class AwsCostExplorerInputPlugin implements InputPlugin {
+public class AwsCostExplorerInputPlugin implements InputPlugin
+{
     protected final Logger logger = Exec.getLogger(getClass());
 
-    public interface PluginTask extends Task {
+    public interface PluginTask extends Task
+    {
         @Config("access_key_id")
         public String getAccessKeyId();
 
@@ -55,7 +57,8 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
     }
 
     @Override
-    public ConfigDiff transaction(final ConfigSource config, final InputPlugin.Control control) {
+    public ConfigDiff transaction(final ConfigSource config, final InputPlugin.Control control)
+    {
         final PluginTask task = config.loadConfig(PluginTask.class);
 
         ImmutableList.Builder<Column> columns = ImmutableList.builder();
@@ -75,19 +78,22 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
 
     @Override
     public ConfigDiff resume(final TaskSource taskSource, final Schema schema, final int taskCount,
-            final InputPlugin.Control control) {
+                             final InputPlugin.Control control)
+    {
         control.run(taskSource, schema, taskCount);
         return Exec.newConfigDiff();
     }
 
     @Override
     public void cleanup(final TaskSource taskSource, final Schema schema, final int taskCount,
-            final List<TaskReport> successTaskReports) {
+                        final List<TaskReport> successTaskReports)
+    {
     }
 
     @Override
     public TaskReport run(final TaskSource taskSource, final Schema schema, final int taskIndex,
-            final PageOutput output) {
+                          final PageOutput output)
+    {
         final PluginTask task = taskSource.loadTask(PluginTask.class);
 
         final AWSCredentials cred = new BasicAWSCredentials(task.getAccessKeyId(), task.getSecretAccessKey());
@@ -122,7 +128,8 @@ public class AwsCostExplorerInputPlugin implements InputPlugin {
     }
 
     @Override
-    public ConfigDiff guess(final ConfigSource config) {
+    public ConfigDiff guess(final ConfigSource config)
+    {
         return Exec.newConfigDiff();
     }
 }
