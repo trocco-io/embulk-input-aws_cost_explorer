@@ -5,6 +5,7 @@ plugins {
     id "checkstyle"
 }
 import com.github.jrubygradle.JRubyExec
+
 repositories {
     mavenCentral()
     jcenter()
@@ -13,13 +14,13 @@ configurations {
     provided
 }
 
-version = "0.0.3"
+version = "0.0.4"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile  "org.embulk:embulk-core:0.9.23"
+    compile "org.embulk:embulk-core:0.9.23"
     provided "org.embulk:embulk-core:0.9.23"
     compile "com.amazonaws:aws-java-sdk-costexplorer:1.11.772"
     testCompile "junit:junit:4.+"
@@ -27,7 +28,7 @@ dependencies {
 
 task classpath(type: Copy, dependsOn: ["jar"]) {
     doFirst { file("classpath").deleteDir() }
-    from (configurations.runtime - configurations.provided + files(jar.archivePath))
+    from(configurations.runtime - configurations.provided + files(jar.archivePath))
     into "classpath"
 }
 clean { delete "classpath" }
@@ -73,7 +74,8 @@ task gemspec {
     ext.gemspecFile = file("${project.name}.gemspec")
     inputs.file "build.gradle"
     outputs.file gemspecFile
-    doLast { gemspecFile.write($/
+    doLast {
+        gemspecFile.write($/
 Gem::Specification.new do |spec|
   spec.name          = "${project.name}"
   spec.version       = "${project.version}"
