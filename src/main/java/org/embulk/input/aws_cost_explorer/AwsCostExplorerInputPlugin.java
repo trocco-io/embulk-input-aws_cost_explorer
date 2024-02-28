@@ -10,7 +10,6 @@ import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
 import com.amazonaws.services.costexplorer.model.Granularity;
 import com.amazonaws.services.costexplorer.model.MetricValue;
-import com.google.common.collect.ImmutableList;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
@@ -18,7 +17,6 @@ import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
-import org.embulk.spi.Column;
 import org.embulk.spi.Exec;
 import org.embulk.spi.InputPlugin;
 import org.embulk.spi.PageBuilder;
@@ -67,19 +65,34 @@ public class AwsCostExplorerInputPlugin
 
         GroupsConfigValidator.validate(task.getGroups());
 
-        ImmutableList.Builder<Column> columns = ImmutableList.builder();
-
-        columns.add(new Column(0, "time_period_start", Types.TIMESTAMP));
-        columns.add(new Column(1, "time_period_end", Types.TIMESTAMP));
-        columns.add(new Column(2, "metrics", Types.STRING));
-        columns.add(new Column(3, "amount", Types.DOUBLE));
-        columns.add(new Column(4, "unit", Types.STRING));
-        columns.add(new Column(5, "estimated", Types.BOOLEAN));
-
-        final Schema schema = new Schema(columns.build());
+        final Schema schema = createSchema(task);
         final int taskCount = 1; // number of run() method calls
 
         return resume(task.dump(), schema, taskCount, control);
+    }
+
+    private Schema createSchema(PluginTask task)
+    {
+        Schema.Builder builder = Schema.builder()
+                .add("time_period_start", Types.TIMESTAMP)
+                .add("time_period_end", Types.TIMESTAMP)
+                .add("metrics", Types.STRING);
+
+        addGroupsToSchema(builder, task.getGroups());
+
+        builder
+                .add("amount", Types.DOUBLE)
+                .add("unit", Types.STRING)
+                .add("estimated", Types.BOOLEAN);
+
+        return builder.build();
+    }
+
+    private void addGroupsToSchema(Schema.Builder builder, List<Map<String, String>> groups)
+    {
+        for (int i = 1; i <= groups.size(); i++) {
+            builder.add("group_key" + i, Types.STRING);
+        }
     }
 
     @Override
