@@ -1,15 +1,5 @@
 package org.embulk.input.aws_cost_explorer;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.costexplorer.AWSCostExplorer;
-import com.amazonaws.services.costexplorer.AWSCostExplorerClientBuilder;
-import com.amazonaws.services.costexplorer.model.DateInterval;
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
-import com.amazonaws.services.costexplorer.model.Granularity;
-import com.amazonaws.services.costexplorer.model.MetricValue;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
@@ -17,14 +7,16 @@ import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
+import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerClient;
+import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerClientFactory;
+import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerRequestParametersFactory;
+import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerResponse;
 import org.embulk.spi.Exec;
 import org.embulk.spi.InputPlugin;
 import org.embulk.spi.PageBuilder;
 import org.embulk.spi.PageOutput;
 import org.embulk.spi.Schema;
-import org.embulk.spi.time.TimestampParser;
 import org.embulk.spi.type.Types;
-import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -32,8 +24,6 @@ import java.util.Map;
 public class AwsCostExplorerInputPlugin
         implements InputPlugin
 {
-    protected final Logger logger = Exec.getLogger(getClass());
-
     public interface PluginTask
             extends Task
     {
@@ -115,34 +105,14 @@ public class AwsCostExplorerInputPlugin
     {
         final PluginTask task = taskSource.loadTask(PluginTask.class);
 
-        final AWSCredentials cred = new BasicAWSCredentials(task.getAccessKeyId(), task.getSecretAccessKey());
-
-        final AWSCostExplorer awsCostExplorerClient = AWSCostExplorerClientBuilder.standard().withRegion("us-east-1")
-                .withCredentials(new AWSStaticCredentialsProvider(cred)).build();
-        GetCostAndUsageRequest request = new GetCostAndUsageRequest()
-                .withTimePeriod(new DateInterval().withStart(task.getStartDate()).withEnd(task.getEndDate()))
-                .withGranularity(Granularity.DAILY).withMetrics(task.getMetrics());
-
-        GetCostAndUsageResult result = awsCostExplorerClient.getCostAndUsage(request);
-        final TimestampParser parser = TimestampParser.of("%Y-%m-%d", "UTC");
+        final AwsCostExplorerClient awsCostExplorerClient = AwsCostExplorerClientFactory.create(task);
+        final AwsCostExplorerResponse awsCostExplorerResponse = awsCostExplorerClient.request(AwsCostExplorerRequestParametersFactory.create(task));
 
         try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
-            result.getResultsByTime().forEach(resultsByTime -> {
-                System.out.println(resultsByTime.toString());
-                logger.info("Cost Explorer API results: {}", resultsByTime);
-                String start = resultsByTime.getTimePeriod().getStart();
-                String end = resultsByTime.getTimePeriod().getEnd();
-                pageBuilder.setTimestamp(schema.getColumn(0), parser.parse(start));
-                pageBuilder.setTimestamp(schema.getColumn(1), parser.parse(end));
-                pageBuilder.setString(schema.getColumn(2), task.getMetrics());
-                MetricValue metricValue = resultsByTime.getTotal().get(task.getMetrics());
-                pageBuilder.setDouble(schema.getColumn(3), Double.parseDouble(metricValue.getAmount()));
-                pageBuilder.setString(schema.getColumn(4), metricValue.getUnit());
-                pageBuilder.setBoolean(schema.getColumn(5), resultsByTime.isEstimated());
-                pageBuilder.addRecord();
-            });
+            awsCostExplorerResponse.addRecordsToPage(pageBuilder, task);
             pageBuilder.finish();
         }
+
         return null;
     }
 
