@@ -29,6 +29,7 @@ import org.embulk.spi.type.Types;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Map;
 
 public class AwsCostExplorerInputPlugin
         implements InputPlugin
@@ -48,6 +49,10 @@ public class AwsCostExplorerInputPlugin
         @ConfigDefault("\"UnblendedCost\"")
         String getMetrics();
 
+        @Config("groups")
+        @ConfigDefault("[]")
+        List<Map<String, String>> getGroups();
+
         @Config("start_date")
         String getStartDate();
 
@@ -59,6 +64,8 @@ public class AwsCostExplorerInputPlugin
     public ConfigDiff transaction(final ConfigSource config, final InputPlugin.Control control)
     {
         final PluginTask task = config.loadConfig(PluginTask.class);
+
+        GroupsConfigValidator.validate(task.getGroups());
 
         ImmutableList.Builder<Column> columns = ImmutableList.builder();
 
