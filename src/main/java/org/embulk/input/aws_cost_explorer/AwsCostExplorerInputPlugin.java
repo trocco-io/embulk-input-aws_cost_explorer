@@ -1,9 +1,6 @@
 package org.embulk.input.aws_cost_explorer;
 
-import java.util.List;
-
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.costexplorer.AWSCostExplorer;
@@ -13,9 +10,7 @@ import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
 import com.amazonaws.services.costexplorer.model.Granularity;
 import com.amazonaws.services.costexplorer.model.MetricValue;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
@@ -33,27 +28,31 @@ import org.embulk.spi.time.TimestampParser;
 import org.embulk.spi.type.Types;
 import org.slf4j.Logger;
 
-public class AwsCostExplorerInputPlugin implements InputPlugin
+import java.util.List;
+
+public class AwsCostExplorerInputPlugin
+        implements InputPlugin
 {
     protected final Logger logger = Exec.getLogger(getClass());
 
-    public interface PluginTask extends Task
+    public interface PluginTask
+            extends Task
     {
         @Config("access_key_id")
-        public String getAccessKeyId();
+        String getAccessKeyId();
 
         @Config("secret_access_key")
-        public String getSecretAccessKey();
+        String getSecretAccessKey();
 
         @Config("metrics")
         @ConfigDefault("\"UnblendedCost\"")
-        public String getMetrics();
+        String getMetrics();
 
         @Config("start_date")
-        public String getStartDate();
+        String getStartDate();
 
         @Config("end_date")
-        public String getEndDate();
+        String getEndDate();
     }
 
     @Override
@@ -78,7 +77,7 @@ public class AwsCostExplorerInputPlugin implements InputPlugin
 
     @Override
     public ConfigDiff resume(final TaskSource taskSource, final Schema schema, final int taskCount,
-                             final InputPlugin.Control control)
+            final InputPlugin.Control control)
     {
         control.run(taskSource, schema, taskCount);
         return Exec.newConfigDiff();
@@ -86,13 +85,13 @@ public class AwsCostExplorerInputPlugin implements InputPlugin
 
     @Override
     public void cleanup(final TaskSource taskSource, final Schema schema, final int taskCount,
-                        final List<TaskReport> successTaskReports)
+            final List<TaskReport> successTaskReports)
     {
     }
 
     @Override
     public TaskReport run(final TaskSource taskSource, final Schema schema, final int taskIndex,
-                          final PageOutput output)
+            final PageOutput output)
     {
         final PluginTask task = taskSource.loadTask(PluginTask.class);
 
@@ -110,7 +109,7 @@ public class AwsCostExplorerInputPlugin implements InputPlugin
         try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
             result.getResultsByTime().forEach(resultsByTime -> {
                 System.out.println(resultsByTime.toString());
-                logger.info("Cost Explorer API results: {}", resultsByTime.toString());
+                logger.info("Cost Explorer API results: {}", resultsByTime);
                 String start = resultsByTime.getTimePeriod().getStart();
                 String end = resultsByTime.getTimePeriod().getEnd();
                 pageBuilder.setTimestamp(schema.getColumn(0), parser.parse(start));
