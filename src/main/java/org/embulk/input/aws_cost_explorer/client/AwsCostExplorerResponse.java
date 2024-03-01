@@ -62,6 +62,12 @@ public class AwsCostExplorerResponse
         pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodStart);
         pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodEnd);
         pageBuilder.setString(schema.getColumn(i++), task.getMetrics());
+
+        for (int j = 0; j < task.getGroups().size(); j++) {
+            // Fill with empty strings for periods with no records, as groups will be empty arrays for these periods.
+            pageBuilder.setString(schema.getColumn(i++), "");
+        }
+
         pageBuilder.setDouble(schema.getColumn(i++), Double.parseDouble(metricValue.getAmount()));
         pageBuilder.setString(schema.getColumn(i++), metricValue.getUnit());
         pageBuilder.setBoolean(schema.getColumn(i), resultsByTime.isEstimated());
