@@ -30,6 +30,14 @@ public class AwsCostExplorerResponse
     }
 
     /**
+     * Get next page token
+     */
+    public String getNextPageToken()
+    {
+        return result.getNextPageToken();
+    }
+
+    /**
      * Add records to page
      *
      * @param pageBuilder PageBuilder

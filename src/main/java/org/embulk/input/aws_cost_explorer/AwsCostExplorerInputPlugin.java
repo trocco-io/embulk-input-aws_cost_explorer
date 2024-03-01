@@ -1,5 +1,6 @@
 package org.embulk.input.aws_cost_explorer;
 
+import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
@@ -10,7 +11,6 @@ import org.embulk.config.TaskSource;
 import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerClient;
 import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerClientFactory;
 import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerRequestParametersFactory;
-import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerResponse;
 import org.embulk.spi.Exec;
 import org.embulk.spi.InputPlugin;
 import org.embulk.spi.PageBuilder;
@@ -104,12 +104,11 @@ public class AwsCostExplorerInputPlugin
             final PageOutput output)
     {
         final PluginTask task = taskSource.loadTask(PluginTask.class);
-
         final AwsCostExplorerClient awsCostExplorerClient = AwsCostExplorerClientFactory.create(task);
-        final AwsCostExplorerResponse awsCostExplorerResponse = awsCostExplorerClient.request(AwsCostExplorerRequestParametersFactory.create(task));
+        final GetCostAndUsageRequest requestParameters = AwsCostExplorerRequestParametersFactory.create(task);
 
         try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
-            awsCostExplorerResponse.addRecordsToPage(pageBuilder, task);
+            awsCostExplorerClient.requestAll(requestParameters).forEach(response -> response.addRecordsToPage(pageBuilder, task));
             pageBuilder.finish();
         }
 
