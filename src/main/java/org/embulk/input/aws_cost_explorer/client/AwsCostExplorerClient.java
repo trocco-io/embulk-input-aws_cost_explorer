@@ -33,37 +33,22 @@ public class AwsCostExplorerClient
     {
         return new Spliterator<AwsCostExplorerResponse>()
         {
-            boolean isFinished = false;
-
             @Override
             public boolean tryAdvance(Consumer<? super AwsCostExplorerResponse> action)
             {
-                if (isFinished) {
-                    return false;
-                }
-
                 final AwsCostExplorerResponse response = request(requestParameters);
                 action.accept(response);
 
-                prepareNextRequest(response);
+                final String nextPageToken = response.getNextPageToken();
+                requestParameters.setNextPageToken(nextPageToken);
 
-                return !isFinished;
+                return nextPageToken != null && !nextPageToken.isEmpty();
             }
 
             private AwsCostExplorerResponse request(GetCostAndUsageRequest requestParameters)
             {
                 final GetCostAndUsageResult result = client.getCostAndUsage(requestParameters);
                 return new AwsCostExplorerResponse(result);
-            }
-
-            private void prepareNextRequest(AwsCostExplorerResponse response)
-            {
-                final String nextPageToken = response.getNextPageToken();
-                requestParameters.setNextPageToken(nextPageToken);
-
-                if (nextPageToken == null || nextPageToken.isEmpty()) {
-                    isFinished = true;
-                }
             }
 
             @Override
