@@ -1,6 +1,7 @@
 package org.embulk.input.aws_cost_explorer.client;
 
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
+import com.amazonaws.services.costexplorer.model.Group;
 import com.amazonaws.services.costexplorer.model.MetricValue;
 import com.amazonaws.services.costexplorer.model.ResultByTime;
 import org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin.PluginTask;
@@ -60,20 +61,43 @@ public class AwsCostExplorerResponse
 
     private void addRecordToPageWithoutGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
     {
-        final Schema schema = pageBuilder.getSchema();
-
         Timestamp timePeriodStart = timestampParser.parse(resultsByTime.getTimePeriod().getStart());
         Timestamp timePeriodEnd = timestampParser.parse(resultsByTime.getTimePeriod().getEnd());
         MetricValue metricValue = resultsByTime.getTotal().get(task.getMetrics());
 
+        addRecordToPage(pageBuilder, task, resultsByTime, timePeriodStart, timePeriodEnd, metricValue, null);
+    }
+
+    private void addRecordsToPageWithGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
+    {
+        Timestamp timePeriodStart = timestampParser.parse(resultsByTime.getTimePeriod().getStart());
+        Timestamp timePeriodEnd = timestampParser.parse(resultsByTime.getTimePeriod().getEnd());
+
+        resultsByTime.getGroups().forEach(group -> {
+            MetricValue metricValue = group.getMetrics().get(task.getMetrics());
+
+            addRecordToPage(pageBuilder, task, resultsByTime, timePeriodStart, timePeriodEnd, metricValue, group);
+        });
+    }
+
+    private void addRecordToPage(
+            PageBuilder pageBuilder,
+            PluginTask task,
+            ResultByTime resultsByTime,
+            Timestamp timePeriodStart,
+            Timestamp timePeriodEnd,
+            MetricValue metricValue,
+            Group group)
+    {
+        final Schema schema = pageBuilder.getSchema();
         int i = 0;
+
         pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodStart);
         pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodEnd);
         pageBuilder.setString(schema.getColumn(i++), task.getMetrics());
 
         for (int j = 0; j < task.getGroups().size(); j++) {
-            // Fill with empty strings for periods with no records, as groups will be empty arrays for these periods.
-            pageBuilder.setString(schema.getColumn(i++), "");
+            pageBuilder.setString(schema.getColumn(i++), group != null ? group.getKeys().get(j) : "");
         }
 
         pageBuilder.setDouble(schema.getColumn(i++), Double.parseDouble(metricValue.getAmount()));
@@ -81,32 +105,5 @@ public class AwsCostExplorerResponse
         pageBuilder.setBoolean(schema.getColumn(i), resultsByTime.isEstimated());
 
         pageBuilder.addRecord();
-    }
-
-    private void addRecordsToPageWithGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
-    {
-        final Schema schema = pageBuilder.getSchema();
-
-        Timestamp timePeriodStart = timestampParser.parse(resultsByTime.getTimePeriod().getStart());
-        Timestamp timePeriodEnd = timestampParser.parse(resultsByTime.getTimePeriod().getEnd());
-
-        resultsByTime.getGroups().forEach(group -> {
-            MetricValue metricValue = group.getMetrics().get(task.getMetrics());
-            int i = 0;
-
-            pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodStart);
-            pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodEnd);
-            pageBuilder.setString(schema.getColumn(i++), task.getMetrics());
-
-            for (String key : group.getKeys()) {
-                pageBuilder.setString(schema.getColumn(i++), key);
-            }
-
-            pageBuilder.setDouble(schema.getColumn(i++), Double.parseDouble(metricValue.getAmount()));
-            pageBuilder.setString(schema.getColumn(i++), metricValue.getUnit());
-            pageBuilder.setBoolean(schema.getColumn(i), resultsByTime.isEstimated());
-
-            pageBuilder.addRecord();
-        });
     }
 }
