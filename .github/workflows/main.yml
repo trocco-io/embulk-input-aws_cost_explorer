@@ -30,7 +30,7 @@ jobs:
       - run: ./gradlew test
       - name: Show Current Version
         run: ./gradlew printVersion
-      - name: Build Gem & Put it into './build/gems/' Directory
+      - name: Build Gem & Put it into './pkg/' Directory
         run: ./gradlew gem
       - name: Set up JRuby
         uses: ruby/setup-ruby@v1
