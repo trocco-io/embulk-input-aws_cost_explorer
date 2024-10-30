@@ -1,21 +1,21 @@
 plugins {
-    id "com.jfrog.bintray" version "1.1"
-    id "com.github.jruby-gradle.base" version "1.5.0"
+    id "java"
+    id "org.embulk.embulk-plugins" version "0.5.5"
     id "com.palantir.git-version" version "0.12.3"
     id "com.diffplug.spotless" version "6.13.0"
-    id "java"
     id "checkstyle"
 }
-import com.github.jrubygradle.JRubyExec
 
 repositories {
     mavenCentral()
-    jcenter()
 }
+
 configurations {
     provided
 }
 
+group = "io.trocco"
+description = "An embulk input plugin to load records from Aws Cost Explorer."
 version = {
     def vd = versionDetails()
     if (vd.commitDistance == 0 && vd.lastTag ==~ /^[0-9]+\.[0-9]+\.[0-9]?/) {
@@ -36,13 +36,6 @@ dependencies {
     testCompile "junit:junit:4.+"
 }
 
-task classpath(type: Copy, dependsOn: ["jar"]) {
-    doFirst { file("classpath").deleteDir() }
-    from(configurations.runtime - configurations.provided + files(jar.archivePath))
-    into "classpath"
-}
-clean { delete "classpath" }
-
 checkstyle {
     configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
     toolVersion = '6.14.1'
@@ -60,51 +53,18 @@ task checkstyle(type: Checkstyle) {
     source = sourceSets.main.allJava + sourceSets.test.allJava
 }
 
-task gem(type: JRubyExec, dependsOn: ["gemspec", "classpath"]) {
-    jrubyArgs "-S"
-    script "gem"
-    scriptArgs "build", "${project.name}.gemspec"
-    doLast { ant.move(file: "${project.name}-${project.version}.gem", todir: "pkg") }
+embulkPlugin {
+    mainClass = "org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin"
+    category = "input"
+    type = "aws_cost_explorer"
 }
 
-task gemPush(type: JRubyExec, dependsOn: ["gem"]) {
-    jrubyArgs "-S"
-    script "gem"
-    scriptArgs "push", "pkg/${project.name}-${project.version}.gem"
+clean { delete "classpath" }
+
+gem {
+  authors = ["kekekenta"]
+  summary = "Aws Cost Explorer input plugin for Embulk"
+  email = ["bell.kenta@gmail.com"]
+  licenses = ["MIT"]
+  homepage = "https://github.com/trocco-io/embulk-input-aws_cost_explorer"
 }
-
-task "package"(dependsOn: ["gemspec", "classpath"]) {
-    doLast {
-        println "> Build succeeded."
-        println "> You can run embulk with '-L ${file(".").absolutePath}' argument."
-    }
-}
-
-task gemspec {
-    ext.gemspecFile = file("${project.name}.gemspec")
-    inputs.file "build.gradle"
-    outputs.file gemspecFile
-    doLast {
-        gemspecFile.write($/
-Gem::Specification.new do |spec|
-  spec.name          = "${project.name}"
-  spec.version       = "${project.version}"
-  spec.authors       = ["kekekenta"]
-  spec.summary       = %[Aws Cost Explorer input plugin for Embulk]
-  spec.description   = %[Loads records from Aws Cost Explorer.]
-  spec.email         = ["bell.kenta@gmail.com"]
-  spec.licenses      = ["MIT"]
-  spec.homepage      = "https://github.com/trocco-io/embulk-input-aws_cost_explorer"
-
-  spec.files         = `git ls-files`.split("\n") + Dir["classpath/*.jar"]
-  spec.test_files    = spec.files.grep(%r"^(test|spec)/")
-  spec.require_paths = ["lib"]
-
-  #spec.add_dependency 'YOUR_GEM_DEPENDENCY', ['~> YOUR_GEM_DEPENDENCY_VERSION']
-  spec.add_development_dependency 'bundler', ['~> 1.0']
-  spec.add_development_dependency 'rake', ['~> 12.0']
-end
-/$)
-    }
-}
-clean { delete "${project.name}.gemspec" }
