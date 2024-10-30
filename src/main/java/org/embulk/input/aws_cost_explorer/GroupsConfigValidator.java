@@ -2,14 +2,13 @@ package org.embulk.input.aws_cost_explorer;
 
 import com.amazonaws.services.costexplorer.model.Dimension;
 import com.amazonaws.services.costexplorer.model.GroupDefinitionType;
-import org.embulk.config.ConfigException;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.embulk.config.ConfigException;
 
 public class GroupsConfigValidator
 {

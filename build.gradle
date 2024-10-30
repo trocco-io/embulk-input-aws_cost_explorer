@@ -3,7 +3,6 @@ plugins {
     id "org.embulk.embulk-plugins" version "0.5.5"
     id "com.palantir.git-version" version "0.12.3"
     id "com.diffplug.spotless" version "6.13.0"
-    id "checkstyle"
 }
 
 repositories {
@@ -36,23 +35,6 @@ dependencies {
     testCompile "junit:junit:4.+"
 }
 
-checkstyle {
-    configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
-    toolVersion = '6.14.1'
-}
-checkstyleMain {
-    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
-    ignoreFailures = true
-}
-checkstyleTest {
-    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
-    ignoreFailures = true
-}
-task checkstyle(type: Checkstyle) {
-    classpath = sourceSets.main.output + sourceSets.test.output
-    source = sourceSets.main.allJava + sourceSets.test.allJava
-}
-
 embulkPlugin {
     mainClass = "org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin"
     category = "input"
@@ -67,4 +49,13 @@ gem {
   email = ["bell.kenta@gmail.com"]
   licenses = ["MIT"]
   homepage = "https://github.com/trocco-io/embulk-input-aws_cost_explorer"
+}
+
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+        // TODO: If we apply it, there will be many changes, so we will make it a separate Pull Request.
+        // googleJavaFormat().aosp()
+    }
 }
