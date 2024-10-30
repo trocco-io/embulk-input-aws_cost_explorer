@@ -1,7 +1,6 @@
 name: main
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - "master"
@@ -11,13 +10,21 @@ on:
     branches:
       - "master"
     types: [ opened, synchronize ]
+  pull_request_target:
+    branches:
+      - "master"
+    types: [labeled]
 
 jobs:
-  main:
+  test:
+    name: test
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
+    if: >
+      ${{
+        github.event_name == 'pull_request' ||
+        (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'safe to test')) ||
+        startsWith(github.ref, 'refs/tags/')
+      }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 1.8
@@ -29,17 +36,23 @@ jobs:
         run: ./gradlew spotlessCheck
       - name: Test
         run: ./gradlew test
-      - name: Show Current Version
-        run: ./gradlew printVersion
-      - name: Build Gem & Put it into './pkg/' Directory
-        run: ./gradlew gem
-      - name: Set up JRuby
+  build:
+    name: Build + Publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    needs: [ test ]
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby 2.7
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: jruby
+          ruby-version: 2.7
       - name: push gem
         uses: trocco-io/push-gem-to-gpr-action@v1
         with:
           language: java
-          gem-path: "./pkg/*.gem"
+          gem-path: "./build/gems/*.gem"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
