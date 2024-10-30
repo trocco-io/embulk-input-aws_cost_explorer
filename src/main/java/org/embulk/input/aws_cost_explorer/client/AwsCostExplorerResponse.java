@@ -48,7 +48,6 @@ public class AwsCostExplorerResponse
     public void addRecordsToPage(PageBuilder pageBuilder, PluginTask task)
     {
         result.getResultsByTime().forEach(resultsByTime -> {
-            System.out.println(resultsByTime.toString());
             logger.info("Cost Explorer API results: {}", resultsByTime);
 
             if (resultsByTime.getGroups().isEmpty()) {
