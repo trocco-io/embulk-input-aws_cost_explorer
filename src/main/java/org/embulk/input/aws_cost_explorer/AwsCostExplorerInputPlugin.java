@@ -41,8 +41,7 @@ public class AwsCostExplorerInputPlugin
         return resume(task.dump(), schema, taskCount, control);
     }
 
-    private Schema createSchema(PluginTask task)
-    {
+    protected Schema createSchema(PluginTask task) {
         Schema.Builder builder = Schema.builder()
                 .add("time_period_start", Types.TIMESTAMP)
                 .add("time_period_end", Types.TIMESTAMP)
@@ -84,7 +83,7 @@ public class AwsCostExplorerInputPlugin
             final PageOutput output)
     {
         final PluginTask task = TASK_MAPPER.map(taskSource, PluginTask.class);
-        final AwsCostExplorerClient awsCostExplorerClient = AwsCostExplorerClientFactory.create(task);
+        final AwsCostExplorerClient awsCostExplorerClient = createAwsCostExplorerClient(task);
         final GetCostAndUsageRequest requestParameters = AwsCostExplorerRequestParametersFactory.create(task);
 
         try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
@@ -93,6 +92,10 @@ public class AwsCostExplorerInputPlugin
         }
 
         return null;
+    }
+
+    protected AwsCostExplorerClient createAwsCostExplorerClient(PluginTask task) {
+        return AwsCostExplorerClientFactory.create(task);
     }
 
     @Override
