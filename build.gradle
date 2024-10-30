@@ -17,7 +17,7 @@ group = "io.trocco"
 description = "An embulk input plugin to load records from Aws Cost Explorer."
 version = {
     def vd = versionDetails()
-    if (vd.commitDistance == 0 && vd.lastTag ==~ /^[0-9]+\.[0-9]+\.[0-9]?/) {
+    if (vd.commitDistance == 0 && vd.lastTag ==~ /^[0-9]+\.[0-9]+\.[0-9]+(\.[a-zA-Z0-9]+)?/) {
         vd.lastTag
     }
     else {
