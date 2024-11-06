@@ -4,11 +4,12 @@ import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
 import com.amazonaws.services.costexplorer.model.Group;
 import com.amazonaws.services.costexplorer.model.MetricValue;
 import com.amazonaws.services.costexplorer.model.ResultByTime;
-import org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin.PluginTask;
+import java.time.Instant;
+import org.embulk.input.aws_cost_explorer.PluginTask;
 import org.embulk.spi.PageBuilder;
 import org.embulk.spi.Schema;
 import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParser;
+import org.embulk.util.timestamp.TimestampFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,7 @@ public class AwsCostExplorerResponse
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final TimestampParser timestampParser = TimestampParser.of("%Y-%m-%d", "UTC");
+    private final TimestampFormatter timestampFormatter = TimestampFormatter.builderWithRuby("%Y-%m-%d").build();
 
     /**
      * Constructor
@@ -47,7 +48,6 @@ public class AwsCostExplorerResponse
     public void addRecordsToPage(PageBuilder pageBuilder, PluginTask task)
     {
         result.getResultsByTime().forEach(resultsByTime -> {
-            System.out.println(resultsByTime.toString());
             logger.info("Cost Explorer API results: {}", resultsByTime);
 
             if (resultsByTime.getGroups().isEmpty()) {
@@ -61,8 +61,8 @@ public class AwsCostExplorerResponse
 
     private void addRecordToPageWithoutGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
     {
-        Timestamp timePeriodStart = timestampParser.parse(resultsByTime.getTimePeriod().getStart());
-        Timestamp timePeriodEnd = timestampParser.parse(resultsByTime.getTimePeriod().getEnd());
+        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.getTimePeriod().getStart());
+        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.getTimePeriod().getEnd());
         MetricValue metricValue = resultsByTime.getTotal().get(task.getMetrics());
 
         addRecordToPage(pageBuilder, task, resultsByTime, timePeriodStart, timePeriodEnd, metricValue, null);
@@ -70,8 +70,8 @@ public class AwsCostExplorerResponse
 
     private void addRecordsToPageWithGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
     {
-        Timestamp timePeriodStart = timestampParser.parse(resultsByTime.getTimePeriod().getStart());
-        Timestamp timePeriodEnd = timestampParser.parse(resultsByTime.getTimePeriod().getEnd());
+        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.getTimePeriod().getStart());
+        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.getTimePeriod().getEnd());
 
         resultsByTime.getGroups().forEach(group -> {
             MetricValue metricValue = group.getMetrics().get(task.getMetrics());
@@ -84,16 +84,18 @@ public class AwsCostExplorerResponse
             PageBuilder pageBuilder,
             PluginTask task,
             ResultByTime resultsByTime,
-            Timestamp timePeriodStart,
-            Timestamp timePeriodEnd,
+            Instant timePeriodStart,
+            Instant timePeriodEnd,
             MetricValue metricValue,
             Group group)
     {
         final Schema schema = pageBuilder.getSchema();
         int i = 0;
 
-        pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodStart);
-        pageBuilder.setTimestamp(schema.getColumn(i++), timePeriodEnd);
+        // To support v0.9.x, we need to use PageBuilder.setTimestamp(Column, Timestamp), not setTimestamp(Column, Instant).
+        // see "Handling date/time and time zones" section in https://dev.embulk.org/topics/get-ready-for-v0.11-and-v1.0.html
+        pageBuilder.setTimestamp(schema.getColumn(i++), Timestamp.ofInstant(timePeriodStart));
+        pageBuilder.setTimestamp(schema.getColumn(i++), Timestamp.ofInstant(timePeriodEnd));
         pageBuilder.setString(schema.getColumn(i++), task.getMetrics());
 
         for (int j = 0; j < task.getGroups().size(); j++) {

@@ -1,11 +1,10 @@
 package org.embulk.input.aws_cost_explorer;
 
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
-import org.embulk.config.Config;
-import org.embulk.config.ConfigDefault;
+import java.util.List;
+import java.util.Map;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
-import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
 import org.embulk.input.aws_cost_explorer.client.AwsCostExplorerClient;
@@ -17,41 +16,22 @@ import org.embulk.spi.PageBuilder;
 import org.embulk.spi.PageOutput;
 import org.embulk.spi.Schema;
 import org.embulk.spi.type.Types;
-
-import java.util.List;
-import java.util.Map;
+import org.embulk.util.config.ConfigMapper;
+import org.embulk.util.config.ConfigMapperFactory;
+import org.embulk.util.config.TaskMapper;
 
 public class AwsCostExplorerInputPlugin
         implements InputPlugin
 {
-    public interface PluginTask
-            extends Task
-    {
-        @Config("access_key_id")
-        String getAccessKeyId();
-
-        @Config("secret_access_key")
-        String getSecretAccessKey();
-
-        @Config("metrics")
-        @ConfigDefault("\"UnblendedCost\"")
-        String getMetrics();
-
-        @Config("groups")
-        @ConfigDefault("[]")
-        List<Map<String, String>> getGroups();
-
-        @Config("start_date")
-        String getStartDate();
-
-        @Config("end_date")
-        String getEndDate();
-    }
+    private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY =
+            ConfigMapperFactory.builder().addDefaultModules().build();
+    private static final ConfigMapper CONFIG_MAPPER = CONFIG_MAPPER_FACTORY.createConfigMapper();
+    private static final TaskMapper TASK_MAPPER = CONFIG_MAPPER_FACTORY.createTaskMapper();
 
     @Override
     public ConfigDiff transaction(final ConfigSource config, final InputPlugin.Control control)
     {
-        final PluginTask task = config.loadConfig(PluginTask.class);
+        final PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
 
         GroupsConfigValidator.validate(task.getGroups());
 
@@ -61,8 +41,7 @@ public class AwsCostExplorerInputPlugin
         return resume(task.dump(), schema, taskCount, control);
     }
 
-    private Schema createSchema(PluginTask task)
-    {
+    protected Schema createSchema(PluginTask task) {
         Schema.Builder builder = Schema.builder()
                 .add("time_period_start", Types.TIMESTAMP)
                 .add("time_period_end", Types.TIMESTAMP)
@@ -90,7 +69,7 @@ public class AwsCostExplorerInputPlugin
             final InputPlugin.Control control)
     {
         control.run(taskSource, schema, taskCount);
-        return Exec.newConfigDiff();
+        return CONFIG_MAPPER_FACTORY.newConfigDiff();
     }
 
     @Override
@@ -103,8 +82,8 @@ public class AwsCostExplorerInputPlugin
     public TaskReport run(final TaskSource taskSource, final Schema schema, final int taskIndex,
             final PageOutput output)
     {
-        final PluginTask task = taskSource.loadTask(PluginTask.class);
-        final AwsCostExplorerClient awsCostExplorerClient = AwsCostExplorerClientFactory.create(task);
+        final PluginTask task = TASK_MAPPER.map(taskSource, PluginTask.class);
+        final AwsCostExplorerClient awsCostExplorerClient = createAwsCostExplorerClient(task);
         final GetCostAndUsageRequest requestParameters = AwsCostExplorerRequestParametersFactory.create(task);
 
         try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
@@ -115,9 +94,13 @@ public class AwsCostExplorerInputPlugin
         return null;
     }
 
+    protected AwsCostExplorerClient createAwsCostExplorerClient(PluginTask task) {
+        return AwsCostExplorerClientFactory.create(task);
+    }
+
     @Override
     public ConfigDiff guess(final ConfigSource config)
     {
-        return Exec.newConfigDiff();
+        return CONFIG_MAPPER_FACTORY.newConfigDiff();
     }
 }

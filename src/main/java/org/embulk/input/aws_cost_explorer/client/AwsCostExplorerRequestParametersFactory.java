@@ -4,11 +4,10 @@ import com.amazonaws.services.costexplorer.model.DateInterval;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import com.amazonaws.services.costexplorer.model.Granularity;
 import com.amazonaws.services.costexplorer.model.GroupDefinition;
-import org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin.PluginTask;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.embulk.input.aws_cost_explorer.PluginTask;
 
 public class AwsCostExplorerRequestParametersFactory
 {

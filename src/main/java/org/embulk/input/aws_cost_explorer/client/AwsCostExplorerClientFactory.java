@@ -4,7 +4,7 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.costexplorer.AWSCostExplorer;
 import com.amazonaws.services.costexplorer.AWSCostExplorerClientBuilder;
-import org.embulk.input.aws_cost_explorer.AwsCostExplorerInputPlugin.PluginTask;
+import org.embulk.input.aws_cost_explorer.PluginTask;
 
 public class AwsCostExplorerClientFactory
 {

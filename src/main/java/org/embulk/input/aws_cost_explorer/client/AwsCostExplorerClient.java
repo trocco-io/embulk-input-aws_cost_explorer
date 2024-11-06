@@ -3,7 +3,6 @@ package org.embulk.input.aws_cost_explorer.client;
 import com.amazonaws.services.costexplorer.AWSCostExplorer;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
-
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
