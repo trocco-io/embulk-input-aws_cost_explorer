@@ -1,6 +1,5 @@
 package org.embulk.input.aws_cost_explorer;
 
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import java.util.List;
 import java.util.Map;
 import org.embulk.config.ConfigDiff;
@@ -19,6 +18,7 @@ import org.embulk.spi.type.Types;
 import org.embulk.util.config.ConfigMapper;
 import org.embulk.util.config.ConfigMapperFactory;
 import org.embulk.util.config.TaskMapper;
+import software.amazon.awssdk.services.costexplorer.model.GetCostAndUsageRequest;
 
 public class AwsCostExplorerInputPlugin
         implements InputPlugin

@@ -36,13 +36,17 @@ dependencies {
 
     compile "org.embulk:embulk-util-config:0.3.4"
     compile "org.embulk:embulk-util-timestamp:0.2.2"
-    compile "com.amazonaws:aws-java-sdk-costexplorer:1.12.666"
+    compile "software.amazon.awssdk:costexplorer:2.20.26"
+    compile "software.amazon.awssdk:auth:2.20.26"
+    compile "software.amazon.awssdk:apache-client:2.20.26"
 
     testImplementation "junit:junit:4.+"
     testImplementation "org.embulk:embulk-core:${embulkVersion}"
     testImplementation "org.embulk:embulk-deps:${embulkVersion}"
     testImplementation "org.embulk:embulk-junit4:${embulkVersion}"
     testImplementation "org.mockito:mockito-core:3.12.4"
+    testImplementation "javax.xml.bind:jaxb-api:2.3.1"
+    testImplementation "org.glassfish.jaxb:jaxb-runtime:2.3.1"
 }
 
 embulkPlugin {

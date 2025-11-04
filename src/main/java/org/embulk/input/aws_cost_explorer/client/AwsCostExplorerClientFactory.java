@@ -1,14 +1,14 @@
 package org.embulk.input.aws_cost_explorer.client;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.costexplorer.AWSCostExplorer;
-import com.amazonaws.services.costexplorer.AWSCostExplorerClientBuilder;
 import org.embulk.input.aws_cost_explorer.PluginTask;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.costexplorer.CostExplorerClient;
 
 public class AwsCostExplorerClientFactory
 {
-    private static final String REGION = "us-east-1";
+    private static final Region REGION = Region.US_EAST_1;
 
     private AwsCostExplorerClientFactory()
     {
@@ -22,22 +22,21 @@ public class AwsCostExplorerClientFactory
      */
     public static AwsCostExplorerClient create(PluginTask task)
     {
-        final AWSCostExplorer client = AWSCostExplorerClientBuilder
-                .standard()
-                .withRegion(REGION)
-                .withCredentials(createAWSStaticCredentialsProvider(task))
+        final CostExplorerClient client = CostExplorerClient.builder()
+                .region(REGION)
+                .credentialsProvider(createStaticCredentialsProvider(task))
                 .build();
 
         return new AwsCostExplorerClient(client);
     }
 
-    private static AWSStaticCredentialsProvider createAWSStaticCredentialsProvider(PluginTask task)
+    private static StaticCredentialsProvider createStaticCredentialsProvider(PluginTask task)
     {
-        final BasicAWSCredentials credentials = new BasicAWSCredentials(
+        final AwsBasicCredentials credentials = AwsBasicCredentials.create(
                 task.getAccessKeyId(),
                 task.getSecretAccessKey()
         );
 
-        return new AWSStaticCredentialsProvider(credentials);
+        return StaticCredentialsProvider.create(credentials);
     }
 }

@@ -1,9 +1,5 @@
 package org.embulk.input.aws_cost_explorer.client;
 
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
-import com.amazonaws.services.costexplorer.model.Group;
-import com.amazonaws.services.costexplorer.model.MetricValue;
-import com.amazonaws.services.costexplorer.model.ResultByTime;
 import java.time.Instant;
 import org.embulk.input.aws_cost_explorer.PluginTask;
 import org.embulk.spi.PageBuilder;
@@ -12,10 +8,14 @@ import org.embulk.spi.time.Timestamp;
 import org.embulk.util.timestamp.TimestampFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.costexplorer.model.GetCostAndUsageResponse;
+import software.amazon.awssdk.services.costexplorer.model.Group;
+import software.amazon.awssdk.services.costexplorer.model.MetricValue;
+import software.amazon.awssdk.services.costexplorer.model.ResultByTime;
 
 public class AwsCostExplorerResponse
 {
-    private final GetCostAndUsageResult result;
+    private final GetCostAndUsageResponse result;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -24,9 +24,9 @@ public class AwsCostExplorerResponse
     /**
      * Constructor
      *
-     * @param result GetCostAndUsageResult
+     * @param result GetCostAndUsageResponse
      */
-    public AwsCostExplorerResponse(GetCostAndUsageResult result)
+    public AwsCostExplorerResponse(GetCostAndUsageResponse result)
     {
         this.result = result;
     }
@@ -36,7 +36,7 @@ public class AwsCostExplorerResponse
      */
     public String getNextPageToken()
     {
-        return result.getNextPageToken();
+        return result.nextPageToken();
     }
 
     /**
@@ -47,10 +47,10 @@ public class AwsCostExplorerResponse
      */
     public void addRecordsToPage(PageBuilder pageBuilder, PluginTask task)
     {
-        result.getResultsByTime().forEach(resultsByTime -> {
+        result.resultsByTime().forEach(resultsByTime -> {
             logger.info("Cost Explorer API results: {}", resultsByTime);
 
-            if (resultsByTime.getGroups().isEmpty()) {
+            if (resultsByTime.groups().isEmpty()) {
                 addRecordToPageWithoutGroupBy(pageBuilder, task, resultsByTime);
             }
             else {
@@ -61,20 +61,20 @@ public class AwsCostExplorerResponse
 
     private void addRecordToPageWithoutGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
     {
-        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.getTimePeriod().getStart());
-        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.getTimePeriod().getEnd());
-        MetricValue metricValue = resultsByTime.getTotal().get(task.getMetrics());
+        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.timePeriod().start());
+        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.timePeriod().end());
+        MetricValue metricValue = resultsByTime.total().get(task.getMetrics());
 
         addRecordToPage(pageBuilder, task, resultsByTime, timePeriodStart, timePeriodEnd, metricValue, null);
     }
 
     private void addRecordsToPageWithGroupBy(PageBuilder pageBuilder, PluginTask task, ResultByTime resultsByTime)
     {
-        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.getTimePeriod().getStart());
-        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.getTimePeriod().getEnd());
+        Instant timePeriodStart = timestampFormatter.parse(resultsByTime.timePeriod().start());
+        Instant timePeriodEnd = timestampFormatter.parse(resultsByTime.timePeriod().end());
 
-        resultsByTime.getGroups().forEach(group -> {
-            MetricValue metricValue = group.getMetrics().get(task.getMetrics());
+        resultsByTime.groups().forEach(group -> {
+            MetricValue metricValue = group.metrics().get(task.getMetrics());
 
             addRecordToPage(pageBuilder, task, resultsByTime, timePeriodStart, timePeriodEnd, metricValue, group);
         });
@@ -99,12 +99,12 @@ public class AwsCostExplorerResponse
         pageBuilder.setString(schema.getColumn(i++), task.getMetrics());
 
         for (int j = 0; j < task.getGroups().size(); j++) {
-            pageBuilder.setString(schema.getColumn(i++), group != null ? group.getKeys().get(j) : "");
+            pageBuilder.setString(schema.getColumn(i++), group != null ? group.keys().get(j) : "");
         }
 
-        pageBuilder.setDouble(schema.getColumn(i++), Double.parseDouble(metricValue.getAmount()));
-        pageBuilder.setString(schema.getColumn(i++), metricValue.getUnit());
-        pageBuilder.setBoolean(schema.getColumn(i), resultsByTime.isEstimated());
+        pageBuilder.setDouble(schema.getColumn(i++), Double.parseDouble(metricValue.amount()));
+        pageBuilder.setString(schema.getColumn(i++), metricValue.unit());
+        pageBuilder.setBoolean(schema.getColumn(i), resultsByTime.estimated());
 
         pageBuilder.addRecord();
     }
