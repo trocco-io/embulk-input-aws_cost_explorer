@@ -1,13 +1,13 @@
 package org.embulk.input.aws_cost_explorer.client;
 
-import com.amazonaws.services.costexplorer.model.DateInterval;
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
-import com.amazonaws.services.costexplorer.model.Granularity;
-import com.amazonaws.services.costexplorer.model.GroupDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.embulk.input.aws_cost_explorer.PluginTask;
+import software.amazon.awssdk.services.costexplorer.model.DateInterval;
+import software.amazon.awssdk.services.costexplorer.model.GetCostAndUsageRequest;
+import software.amazon.awssdk.services.costexplorer.model.Granularity;
+import software.amazon.awssdk.services.costexplorer.model.GroupDefinition;
 
 public class AwsCostExplorerRequestParametersFactory
 {
@@ -23,17 +23,20 @@ public class AwsCostExplorerRequestParametersFactory
      */
     public static GetCostAndUsageRequest create(PluginTask task)
     {
-        GetCostAndUsageRequest request = new GetCostAndUsageRequest()
-                .withTimePeriod(new DateInterval().withStart(task.getStartDate()).withEnd(task.getEndDate()))
-                .withGranularity(Granularity.DAILY)
-                .withMetrics(task.getMetrics());
+        GetCostAndUsageRequest.Builder requestBuilder = GetCostAndUsageRequest.builder()
+                .timePeriod(DateInterval.builder()
+                        .start(task.getStartDate())
+                        .end(task.getEndDate())
+                        .build())
+                .granularity(Granularity.DAILY)
+                .metrics(task.getMetrics());
 
         final List<GroupDefinition> groups = createGroupDefinitionList(task.getGroups());
         if (!groups.isEmpty()) {
-            request.withGroupBy(groups);
+            requestBuilder.groupBy(groups);
         }
 
-        return request;
+        return requestBuilder.build();
     }
 
     private static List<GroupDefinition> createGroupDefinitionList(List<Map<String, String>> groups)
@@ -49,10 +52,9 @@ public class AwsCostExplorerRequestParametersFactory
 
     private static GroupDefinition createGroupDefinition(String groupType, String groupKey)
     {
-        final GroupDefinition group = new GroupDefinition();
-        group.setType(groupType);
-        group.setKey(groupKey);
-
-        return group;
+        return GroupDefinition.builder()
+                .type(groupType)
+                .key(groupKey)
+                .build();
     }
 }

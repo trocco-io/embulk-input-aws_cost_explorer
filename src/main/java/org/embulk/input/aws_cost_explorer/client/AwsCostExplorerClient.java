@@ -1,18 +1,18 @@
 package org.embulk.input.aws_cost_explorer.client;
 
-import com.amazonaws.services.costexplorer.AWSCostExplorer;
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
-import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import software.amazon.awssdk.services.costexplorer.CostExplorerClient;
+import software.amazon.awssdk.services.costexplorer.model.GetCostAndUsageRequest;
+import software.amazon.awssdk.services.costexplorer.model.GetCostAndUsageResponse;
 
 public class AwsCostExplorerClient
 {
-    private final AWSCostExplorer client;
+    private final CostExplorerClient client;
 
-    public AwsCostExplorerClient(AWSCostExplorer client)
+    public AwsCostExplorerClient(CostExplorerClient client)
     {
         this.client = client;
     }
@@ -32,21 +32,30 @@ public class AwsCostExplorerClient
     {
         return new Spliterator<AwsCostExplorerResponse>()
         {
+            private String nextPageToken = null;
+            private boolean isFirstRequest = true;
+
             @Override
             public boolean tryAdvance(Consumer<? super AwsCostExplorerResponse> action)
             {
-                final AwsCostExplorerResponse response = request(requestParameters);
+                final GetCostAndUsageRequest.Builder requestBuilder = requestParameters.toBuilder();
+                
+                if (!isFirstRequest && nextPageToken != null) {
+                    requestBuilder.nextPageToken(nextPageToken);
+                }
+                
+                final AwsCostExplorerResponse response = request(requestBuilder.build());
                 action.accept(response);
 
-                final String nextPageToken = response.getNextPageToken();
-                requestParameters.setNextPageToken(nextPageToken);
+                nextPageToken = response.getNextPageToken();
+                isFirstRequest = false;
 
                 return nextPageToken != null && !nextPageToken.isEmpty();
             }
 
             private AwsCostExplorerResponse request(GetCostAndUsageRequest requestParameters)
             {
-                final GetCostAndUsageResult result = client.getCostAndUsage(requestParameters);
+                final GetCostAndUsageResponse result = client.getCostAndUsage(requestParameters);
                 return new AwsCostExplorerResponse(result);
             }
 
